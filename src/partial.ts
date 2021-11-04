@@ -215,7 +215,7 @@ function parseOracleData(accountInfo: AccountInfo<Buffer>, reserveInfo: ReserveI
 }
 
 async function readTokenPrices(
-  connection,
+  connection: Connection,
   reserveContext: ReserveContext,
 ): Promise<Map<string, Big>> {
   const tokenToCurrentPrice = new Map();
