@@ -135,7 +135,6 @@ which has borrowed ${unhealthyObligation.loanValue} ...
       notify(`unknown error: ${e}`);
       console.error(e);
     } finally {
-      console.log("sleep")
       await sleep(checkInterval);
     }
     // break;
@@ -681,7 +680,7 @@ async function redeemCollateral(
   tokenwallet: TokenAccount,
   lendingMarketAuthority: PublicKey,
 ) {
-  const transaction = new Transaction();
+  const instructions: TransactionInstruction[] = [];
   const transferAuthority = new Keypair();
   if (tokenwallet.amount.eq(new BN(0))) {
     return;
@@ -695,7 +694,7 @@ async function redeemCollateral(
   }
 
 
-  transaction.add(
+  instructions.push(
     Token.createApproveInstruction(
       TOKEN_PROGRAM_ID,
       collateralWallet.address,
@@ -718,10 +717,7 @@ async function redeemCollateral(
     ),
   );
   
-  const signedTx = await provider.wallet.signTransaction(transaction);
-  const redeemSig = await provider.connection.sendTransaction(signedTx, [
-    transferAuthority,
-  ]);
+  const redeemSig = await sendTransaction(provider, instructions, [transferAuthority]);
 
   console.log(`Redeem reserve collateral: ${redeemSig}.`);
 }
