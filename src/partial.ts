@@ -91,7 +91,7 @@ async function runPartialLiquidator() {
   const tokenAccounts = await getOwnedTokenAccounts(connection, payer.publicKey);
   for (const tokenAccount of tokenAccounts) {
     wallets.set(
-      tokenAccount.address.toString(),
+      tokenAccount.mint.toString(),
       tokenAccount
     )
   }

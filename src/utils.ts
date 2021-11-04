@@ -3,19 +3,15 @@ import {
   PublicKey,
   Account,
   SystemProgram,
-  Transaction,
-  Keypair,
 } from '@solana/web3.js';
 import axios from 'axios';
 import { blob, struct, nu64 } from 'buffer-layout';
 import { AccountLayout, Token } from '@solana/spl-token';
 import { TransactionInstruction } from '@solana/web3.js';
-import { ATOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from './ids';
+import { TOKEN_PROGRAM_ID } from './ids';
 import Big from 'big.js';
 import { AccountInfo as TokenAccount } from '@solana/spl-token';
 import { parseTokenAccount } from '@project-serum/common';
-import { u64 } from '@project-serum/serum/lib/layout';
-import { BN } from '@project-serum/anchor';
 
 
 export const STAKING_PROGRAM_ID = new PublicKey(
@@ -179,7 +175,11 @@ export async function getOwnedTokenAccounts(
   return (
     res
       // @ts-ignore
-      .map(r => parseTokenAccountData(r.account.data))
+      .map(r => {
+        const tokenAccount = parseTokenAccount(r.account.data);
+        tokenAccount.address = r.pubkey;
+        return tokenAccount;
+      })
   );
 }
 
