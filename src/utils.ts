@@ -146,7 +146,7 @@ export async function getOwnedTokenAccounts(
   connection: Connection,
   publicKey: PublicKey,
 ): Promise<TokenAccount[]> {
-  let accounts = await connection.getProgramAccounts(
+  const accounts = await connection.getProgramAccounts(
     TOKEN_PROGRAM_ID,
     {
       filters: [

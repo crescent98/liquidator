@@ -513,7 +513,7 @@ async function sendTransaction(
 
   transaction = await provider.wallet.signTransaction(transaction);
   const rawTransaction = transaction.serialize();
-  let options = {
+  const options = {
     skipPreflight: true,
     commitment: 'singleGossip',
   };
