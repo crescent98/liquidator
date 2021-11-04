@@ -1,7 +1,6 @@
 import {
   Connection,
   PublicKey,
-  Account,
   SystemProgram,
   Keypair,
 } from '@solana/web3.js';

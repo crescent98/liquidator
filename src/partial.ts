@@ -5,7 +5,6 @@ import {
   SystemProgram,
   Transaction,
   AccountInfo,
-  Signer,
   TransactionInstruction,
 } from '@solana/web3.js';
 import { homedir } from 'os';
@@ -30,10 +29,10 @@ import { ReserveContext } from '@port.finance/port-sdk/lib/models/ReserveContext
 import { ReserveInfo } from '@port.finance/port-sdk/lib/models/ReserveInfo';
 import { ReserveId } from '@port.finance/port-sdk/lib/models/ReserveId';
 import {SwitchboardAccountType} from '@switchboard-xyz/switchboard-api';
-import { connection, getTokenAccount, Provider, token } from '@project-serum/common';
+import { getTokenAccount } from '@project-serum/common';
 import { AccountInfo as TokenAccount } from '@solana/spl-token';
 import BN from 'bn.js';
-import { Wallet } from '@project-serum/anchor';
+import { Provider, Wallet } from '@project-serum/anchor';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const DISPLAY_FIRST = 10;
