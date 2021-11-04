@@ -3,15 +3,16 @@ import {
   PublicKey,
   SystemProgram,
   Keypair,
+  Transaction,
 } from '@solana/web3.js';
 import axios from 'axios';
-import { blob, struct, nu64 } from 'buffer-layout';
 import { AccountLayout, Token } from '@solana/spl-token';
 import { TransactionInstruction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID } from './ids';
+import { ATOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from './ids';
 import Big from 'big.js';
 import { AccountInfo as TokenAccount } from '@solana/spl-token';
 import { parseTokenAccount } from '@project-serum/common';
+import { BN } from '@project-serum/anchor';
 
 
 export const STAKING_PROGRAM_ID = new PublicKey(
@@ -34,73 +35,63 @@ export const getUnixTs = () => {
   return new Date().getTime() / 1000;
 };
 
-// export async function findLargestTokenAccountForOwner(
-//   connection: Connection,
-//   owner: Keypair,
-//   mint: PublicKey,
-// ): Promise<{ publicKey: PublicKey; tokenAccount: Wallet }> {
-//   const response = await connection.getTokenAccountsByOwner(
-//     owner.publicKey,
-//     { mint },
-//     connection.commitment,
-//   );
-//   let max = new BN(0);
-//   let maxTokenAccount: TokenAccount | null = null;
-//   let maxPubkey: null | PublicKey = null;
+export async function findLargestTokenAccountForOwner(
+  connection: Connection,
+  owner: Keypair,
+  mint: PublicKey,
+): Promise<TokenAccount> {
+  const response = await connection.getTokenAccountsByOwner(
+    owner.publicKey,
+    { mint },
+    connection.commitment,
+  );
+  let max = new BN(0);
+  let maxTokenAccount: TokenAccount | null = null;
+  let maxPubkey: null | PublicKey = null;
 
-//   for (const { pubkey, account } of response.value) {
-//     const tokenAccount = parseTokenAccount(account.data);
-//     if (tokenAccount.amount.gt(max) ) {
-//       maxTokenAccount = tokenAccount;
-//       max = tokenAccount.amount;
-//       maxPubkey = pubkey;
-//     }
-//   }
+  for (const { pubkey, account } of response.value) {
+    const tokenAccount = parseTokenAccount(account.data);
+    if (tokenAccount.amount.gt(max) ) {
+      maxTokenAccount = tokenAccount;
+      max = tokenAccount.amount;
+      maxPubkey = pubkey;
+    }
+  }
 
-//   if (maxPubkey && maxTokenAccount) {
-//     return {publicKey: maxTokenAccount.address, tokenAccount: {
-//       mint: maxTokenAccount.mint,
-//       owner: maxTokenAccount.owner,
-//       amount: max
-//     }};
-//   } else {
-//     console.log('creating new token account');
-//     const transaction = new Transaction();
-//     const aTokenAccountPubkey = (
-//       await PublicKey.findProgramAddress(
-//         [
-//           owner.publicKey.toBuffer(),
-//           TOKEN_PROGRAM_ID.toBuffer(),
-//           mint.toBuffer(),
-//         ],
-//         ATOKEN_PROGRAM_ID,
-//       )
-//     )[0];
+  if (maxPubkey && maxTokenAccount) {
+    return maxTokenAccount;
+  } else {
+    console.log('creating new token account');
+    const transaction = new Transaction();
+    const aTokenAccountPubkey = (
+      await PublicKey.findProgramAddress(
+        [
+          owner.publicKey.toBuffer(),
+          TOKEN_PROGRAM_ID.toBuffer(),
+          mint.toBuffer(),
+        ],
+        ATOKEN_PROGRAM_ID,
+      )
+    )[0];
 
-//     transaction.add(
-//       Token.createAssociatedTokenAccountInstruction(
-//         ATOKEN_PROGRAM_ID,
-//         TOKEN_PROGRAM_ID,
-//         mint,
-//         aTokenAccountPubkey,
-//         owner.publicKey,
-//         owner.publicKey,
-//       ),
-//     );
-//     await connection.sendTransaction(transaction, [owner]);
-//     return {
-//       publicKey: aTokenAccountPubkey,
-//       tokenAccount: { mint, amount: 0, owner: owner.publicKey },
-//     };
-//   }
-// }
-
-export const ACCOUNT_LAYOUT = struct([
-  blob(32, 'mint'),
-  blob(32, 'owner'),
-  nu64('amount'),
-  blob(93),
-]);
+    transaction.add(
+      Token.createAssociatedTokenAccountInstruction(
+        ATOKEN_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        mint,
+        aTokenAccountPubkey,
+        owner.publicKey,
+        owner.publicKey,
+      ),
+    );
+    await connection.sendTransaction(transaction, [owner]);
+    return {
+      address: aTokenAccountPubkey,
+      owner: owner.publicKey,
+      mint
+    } as TokenAccount;
+  }
+}
 
 export function createTokenAccount(
   instructions: TransactionInstruction[],
@@ -161,12 +152,12 @@ export async function getOwnedTokenAccounts(
       filters: [
         {
           memcmp: {
-            offset: ACCOUNT_LAYOUT.offsetOf('owner'),
+            offset: AccountLayout.offsetOf('owner'),
             bytes: publicKey.toBase58(),
           }
         }, 
         {
-          dataSize: ACCOUNT_LAYOUT.span,
+          dataSize: AccountLayout.span,
         }
       ]
     }
