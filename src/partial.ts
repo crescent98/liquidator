@@ -441,8 +441,6 @@ async function liquidateAccount(
     throw new Error("no collateral wallet found")
   }
 
-  signers.push(payer);
-
   const transferAuthority =
     repayReserve.getAssetId().toString() !== SOL_MINT
       ? await liquidateByPayingToken(
@@ -472,7 +470,8 @@ async function liquidateAccount(
         );
 
   signers.push(transferAuthority);
-  const liquidationSig = await provider.connection.sendTransaction(transaction, signers);
+  const signedTx = await provider.wallet.signTransaction(transaction);
+  const liquidationSig = await provider.connection.sendTransaction(signedTx, signers);
   console.log(`liqudiation transaction sent: ${liquidationSig}.`);
 
 
