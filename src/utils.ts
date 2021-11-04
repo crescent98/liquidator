@@ -3,6 +3,7 @@ import {
   PublicKey,
   Account,
   SystemProgram,
+  Keypair,
 } from '@solana/web3.js';
 import axios from 'axios';
 import { blob, struct, nu64 } from 'buffer-layout';
@@ -108,7 +109,7 @@ export function createTokenAccount(
   accountRentExempt: number,
   mint: PublicKey,
   owner: PublicKey,
-  signers: Account[],
+  signers: Keypair[],
 ) {
   const account = createUninitializedAccount(
     instructions,
@@ -133,9 +134,9 @@ export function createUninitializedAccount(
   instructions: TransactionInstruction[],
   payer: PublicKey,
   amount: number,
-  signers: Account[],
+  signers: Keypair[],
 ) {
-  const account = new Account();
+  const account = Keypair.generate();
   instructions.push(
     SystemProgram.createAccount({
       fromPubkey: payer,
@@ -155,8 +156,7 @@ export async function getOwnedTokenAccounts(
   connection: Connection,
   publicKey: PublicKey,
 ): Promise<TokenAccount[]> {
-  // @ts-ignore
-  let res = await connection.getProgramAccounts(
+  let accounts = await connection.getProgramAccounts(
     TOKEN_PROGRAM_ID,
     {
       filters: [
@@ -173,18 +173,11 @@ export async function getOwnedTokenAccounts(
     }
   );
   return (
-    res
-      // @ts-ignore
+    accounts
       .map(r => {
         const tokenAccount = parseTokenAccount(r.account.data);
         tokenAccount.address = r.pubkey;
         return tokenAccount;
       })
   );
-}
-
-export interface Wallet {
-  mint: PublicKey;
-  owner: PublicKey;
-  amount: number;
 }
