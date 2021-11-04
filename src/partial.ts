@@ -10,6 +10,7 @@ import {
 import { homedir } from 'os';
 import * as fs from 'fs';
 import {
+  fetchTokenAccount,
   getOwnedTokenAccounts,
   notify,
   sleep,
@@ -29,7 +30,6 @@ import { ReserveContext } from '@port.finance/port-sdk/lib/models/ReserveContext
 import { ReserveInfo } from '@port.finance/port-sdk/lib/models/ReserveInfo';
 import { ReserveId } from '@port.finance/port-sdk/lib/models/ReserveId';
 import {SwitchboardAccountType} from '@switchboard-xyz/switchboard-api';
-import { getTokenAccount } from '@project-serum/common';
 import { AccountInfo as TokenAccount } from '@solana/spl-token';
 import BN from 'bn.js';
 import { Provider, Wallet } from '@project-serum/anchor';
@@ -160,7 +160,7 @@ function redeemRemainingCollaterals(
       throw new Error(`No collateral wallet for ${reserve.getShareId().key.toString()}`)
     }
 
-    const collateralWallet = await getTokenAccount(
+    const collateralWallet = await fetchTokenAccount(
       provider,
       collateralWalletPubkey.address
     );
@@ -440,7 +440,7 @@ async function liquidateAccount(
   if (!repayWallet || !withdrawWallet) {
     throw new Error("no collateral wallet found")
   }
-  const latestRepayWallet = await getTokenAccount(provider, repayWallet.address);
+  const latestRepayWallet = await fetchTokenAccount(provider, repayWallet.address);
 
   const transferAuthority =
     repayReserve.getAssetId().toString() !== SOL_MINT
@@ -480,7 +480,7 @@ async function liquidateAccount(
   if (!collateralPubkey) {
     throw new Error(`no collateral pubkey for ${withdrawReserve.getShareId().key.toString()}`)
   }
-  const latestCollateralWallet = await getTokenAccount(
+  const latestCollateralWallet = await fetchTokenAccount(
     provider,
     collateralPubkey.address
   )

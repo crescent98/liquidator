@@ -6,13 +6,13 @@ import {
   Transaction,
 } from '@solana/web3.js';
 import axios from 'axios';
-import { AccountLayout, Token } from '@solana/spl-token';
+import { AccountInfo, AccountLayout, Token } from '@solana/spl-token';
 import { TransactionInstruction } from '@solana/web3.js';
 import { ATOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from './ids';
 import Big from 'big.js';
 import { AccountInfo as TokenAccount } from '@solana/spl-token';
-import { parseTokenAccount } from '@project-serum/common';
-import { BN } from '@project-serum/anchor';
+import { getTokenAccount, parseTokenAccount, token } from '@project-serum/common';
+import { BN, Provider } from '@project-serum/anchor';
 
 
 export const STAKING_PROGRAM_ID = new PublicKey(
@@ -170,4 +170,10 @@ export async function getOwnedTokenAccounts(
         return tokenAccount;
       })
   );
+}
+
+export async function fetchTokenAccount(provider: Provider, address: PublicKey): Promise<AccountInfo> {
+  const tokenAccount = await getTokenAccount(provider, address);
+  tokenAccount.address = address;
+  return tokenAccount;
 }
