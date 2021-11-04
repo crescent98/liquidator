@@ -5,6 +5,8 @@ import {
   SystemProgram,
   Transaction,
   AccountInfo,
+  Signer,
+  TransactionInstruction,
 } from '@solana/web3.js';
 import { homedir } from 'os';
 import * as fs from 'fs';
@@ -391,7 +393,7 @@ async function liquidateAccount(
     [lendingMarket.toBuffer()],
     programId,
   );
-  const transaction: Transaction = new Transaction();
+  const instructions: TransactionInstruction[] = [];
   const signers: Keypair[] = [];
 
   const toRefreshReserves: Set<ReserveId> = new Set();
@@ -402,7 +404,7 @@ async function liquidateAccount(
     toRefreshReserves.add(deposit.getReserveId());
   });
   toRefreshReserves.forEach((reserve) => {
-    transaction.add(
+    instructions.push(
       refreshReserveInstruction(reserveContext.getReserveByReserveId(reserve)),
     );
   });
@@ -446,10 +448,10 @@ async function liquidateAccount(
     repayReserve.getAssetId().toString() !== SOL_MINT
       ? await liquidateByPayingToken(
           provider,
-          transaction,
+          instructions,
           signers,
           latestRepayWallet.amount,
-          latestRepayWallet.address,
+          repayWallet.address,
           withdrawWallet.address,
           repayReserve,
           withdrawReserve,
@@ -459,7 +461,7 @@ async function liquidateAccount(
         )
       : await liquidateByPayingSOL(
           provider,
-          transaction,
+          instructions,
           signers,
           new u64(payerAccount.lamports - 100_000_000),
           withdrawWallet.address,
@@ -471,8 +473,8 @@ async function liquidateAccount(
         );
 
   signers.push(transferAuthority);
-  const signedTx = await provider.wallet.signTransaction(transaction);
-  const liquidationSig = await provider.connection.sendTransaction(signedTx, signers);
+
+  const liquidationSig = await sendTransaction(provider, instructions, signers);
   console.log(`liqudiation transaction sent: ${liquidationSig}.`);
 
 
@@ -494,9 +496,35 @@ async function liquidateAccount(
   );
 }
 
+async function sendTransaction(
+  provider: Provider, instructions: TransactionInstruction[], signers: Keypair[]): Promise<string> {
+
+  let transaction = new Transaction({ feePayer: provider.wallet.publicKey });
+
+  instructions.forEach(instruction => {
+    transaction.add(instruction)
+  });
+  transaction.recentBlockhash = (
+    await provider.connection.getRecentBlockhash('singleGossip')
+  ).blockhash;
+
+  if (signers.length > 0) {
+    transaction.partialSign(...signers);
+  }
+
+  transaction = await provider.wallet.signTransaction(transaction);
+  const rawTransaction = transaction.serialize();
+  let options = {
+    skipPreflight: true,
+    commitment: 'singleGossip',
+  };
+
+  return await provider.connection.sendRawTransaction(rawTransaction, options);
+}
+
 async function liquidateByPayingSOL(
   provider: Provider,
-  transaction: Transaction,
+  instructions: TransactionInstruction[],
   signers: Keypair[],
   amount: u64,
   withdrawWallet: PublicKey,
@@ -507,7 +535,7 @@ async function liquidateByPayingSOL(
   lendingMarketAuthority: PublicKey,
 ) {
   const wrappedSOLTokenAccount = new Keypair();
-  transaction.add(
+  instructions.push(
     SystemProgram.createAccount({
       fromPubkey: provider.wallet.publicKey,
       newAccountPubkey: wrappedSOLTokenAccount.publicKey,
@@ -525,7 +553,7 @@ async function liquidateByPayingSOL(
 
   const transferAuthority = await liquidateByPayingToken(
     provider,
-    transaction,
+    instructions,
     signers,
     amount,
     wrappedSOLTokenAccount.publicKey,
@@ -537,7 +565,7 @@ async function liquidateByPayingSOL(
     lendingMarketAuthority,
   );
 
-  transaction.add(
+  instructions.push(
     Token.createCloseAccountInstruction(
       TOKEN_PROGRAM_ID,
       wrappedSOLTokenAccount.publicKey,
@@ -588,7 +616,7 @@ async function fetchStakingAccounts(
 
 async function liquidateByPayingToken(
   provider: Provider,
-  transaction: Transaction,
+  instructions: TransactionInstruction[],
   signers: Keypair[],
   amount: u64,
   repayWallet: PublicKey,
@@ -609,7 +637,7 @@ async function liquidateByPayingToken(
   const laons = obligation.getLoans();
   const collaterals = obligation.getCollaterals();
 
-  transaction.add(
+  instructions.push(
     refreshObligationInstruction(
       obligation.getPortId().key,
       collaterals.map((deposit) => deposit.getReserveId().key),
