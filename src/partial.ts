@@ -440,6 +440,7 @@ async function liquidateAccount(
   if (!repayWallet || !withdrawWallet) {
     throw new Error("no collateral wallet found")
   }
+  const latestRepayWallet = await getTokenAccount(provider, repayWallet.address);
 
   const transferAuthority =
     repayReserve.getAssetId().toString() !== SOL_MINT
@@ -447,8 +448,8 @@ async function liquidateAccount(
           provider,
           transaction,
           signers,
-          repayWallet.amount,
-          repayWallet.address,
+          latestRepayWallet.amount,
+          latestRepayWallet.address,
           withdrawWallet.address,
           repayReserve,
           withdrawReserve,
