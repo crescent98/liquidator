@@ -475,14 +475,9 @@ async function liquidateAccount(
   const liquidationSig = await sendTransaction(provider, instructions, signers);
   console.log(`liqudiation transaction sent: ${liquidationSig}.`);
 
-
-  const collateralPubkey = wallets.get(withdrawReserve.getShareId().key.toString());
-  if (!collateralPubkey) {
-    throw new Error(`no collateral pubkey for ${withdrawReserve.getShareId().key.toString()}`)
-  }
   const latestCollateralWallet = await fetchTokenAccount(
     provider,
-    collateralPubkey.address
+    withdrawWallet.address
   )
 
   await redeemCollateral(
