@@ -12,5 +12,7 @@ services:
       - KEYPAIR=/.config/solana/id.json
       - PROGRAM_ID=Port7uDYB3wk6GJAw4KT1WpTeMtSu9bTcChBHkX2LfR
       - CHECK_INTERVAL=2500.0
+      - IS_LOG=true
     volumes:
       - "./id.json:/.config/solana/id.json"
+      - "./logs/:/home/logs/"

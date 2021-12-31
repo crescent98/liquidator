@@ -66,7 +66,7 @@ async function runLiquidator() {
     commitment: "recent",
   })
 
-  console.log(`Port liquidator launched on cluster=${clusterUrl}`);
+  notify(`Port liquidator launched on cluster=${clusterUrl}`);
 
   const reserveContext = await Port.forMainNet({}).getReserveContext();
 
@@ -76,7 +76,7 @@ async function runLiquidator() {
   while (true) {
     try {
       const unhealthyObligations = await getUnhealthyObligations(connection);
-      console.log(
+      notify(
         `Time: ${new Date()} - payer account ${payer.publicKey.toBase58()}, we have ${
           unhealthyObligations.length
         } accounts for liquidation`,
@@ -179,7 +179,7 @@ async function redeemRemainingCollaterals(
         );
       }
     } catch (e) {
-      console.log(e)
+      notify(e)
     }
 
   });
@@ -298,14 +298,24 @@ async function getUnhealthyObligations(connection: Connection) {
     .sort((obligation1, obligation2) => {
       return obligation2.riskFactor * 100 - obligation1.riskFactor * 100;
     });
+    
+    notify("토큰의 현재 가격은 다음과 같습니다.\ntokenToCurrentPrice is ... ");
+    try {
+      for (const [key, value] of tokenToCurrentPrice.entries()) {
+        notify(String(key) + ": " + String(value));
+      }
+  
+    } catch (error) {
+      notify("로그 에러 발생" + String(error));
+    }
 
-  console.log(
+  notify(
     `
 Total number of loans are ${portBalances.length} and possible liquidation debts are ${sortedObligations.length}
 `,
   );
   sortedObligations.slice(0, DISPLAY_FIRST).forEach((ob) =>
-    console.log(
+    notify(
       `Risk factor: ${ob.riskFactor.toFixed(4)} borrowed amount: ${
         ob.loanValue
       } deposit amount: ${ob.collateralValue}
@@ -316,11 +326,11 @@ obligation pubkey: ${ob.obligation.getPortId().toString()}
   );
 
   tokenToCurrentPrice.forEach((price: Big, token: string) => {
-    console.log(
+    notify(
       `name: ${portProfile.getAssetContext().findConfigByReserveId(ReserveId.fromBase58(token))?.getDisplayConfig().getName()} price: ${price.toString()}`,
     );
   });
-  console.log('\n');
+  notify('\n');
   return sortedObligations.filter((obligation) => obligation.riskFactor >= 1);
 }
 
@@ -506,7 +516,7 @@ async function liquidateUnhealthyObligation(
   const assetContext = portProfile.getAssetContext();
   const repayTokenName = assetContext.findConfigByReserveId(repayReserve.getReserveId())?.getDisplayConfig().name;
   const withdrawTokenName = assetContext.findConfigByReserveId(withdrawReserve.getReserveId())?.getDisplayConfig().name;
-  console.log(`Liqudiation transaction sent: ${liquidationSig}, paying ${repayTokenName} for ${withdrawTokenName}.`);
+  notify(`Liqudiation transaction sent: ${liquidationSig}, paying ${repayTokenName} for ${withdrawTokenName}.`);
 
   const latestCollateralWallet = await fetchTokenAccount(
     provider,
@@ -520,7 +530,7 @@ async function liquidateUnhealthyObligation(
     lendingMarketAuthority,
   );
 
-  console.log(`Redeemed ${latestCollateralWallet.amount.toString()} lamport of ${withdrawTokenName} collateral tokens: ${redeemSig}`);
+  notify(`Redeemed ${latestCollateralWallet.amount.toString()} lamport of ${withdrawTokenName} collateral tokens: ${redeemSig}`);
 }
 
 async function liquidateByPayingSOL(

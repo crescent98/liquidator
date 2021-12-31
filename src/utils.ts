@@ -24,6 +24,20 @@ export function notify(content: string) {
     axios.post(process.env.WEBHOOK_URL, { text: content });
   }
   console.log(content);
+
+  if (process.env.IS_LOG) {
+    const fs = require('fs');
+    const today = new Date();
+    const year = String(today.getFullYear());
+    const month = String(today.getMonth() + 1);
+    const date = String(today.getDate());
+    const timeString = String('['+ today.toLocaleTimeString() + ']')
+    const fileName = '/home/logs/' + year + month + date + '-liquidator.log';
+
+    fs.appendFile(fileName, timeString + ' ' + content + '\n', function (err) {
+      if (err) throw err;
+    })
+  };
 }
 
 export function sleep(ms) {
@@ -60,7 +74,7 @@ export async function findLargestTokenAccountForOwner(
   if (maxPubkey && maxTokenAccount) {
     return maxTokenAccount;
   } else {
-    console.log('creating new token account');
+    notify('creating new token account');
     const transaction = new Transaction();
     const aTokenAccountPubkey = (
       await PublicKey.findProgramAddress(
@@ -137,7 +151,7 @@ export async function createAssociatedTokenAccount(
     mint,
     provider.wallet.publicKey,
   );
-  console.log(`Creating token account for ${mint.toString()}`);
+  notify(`Creating token account for ${mint.toString()}`);
   await sendTransaction(
     provider,
     [
